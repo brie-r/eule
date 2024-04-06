@@ -4,6 +4,8 @@ version = "0.5.0"
 edition = "2021"
 description = "Async generic serialization crate with a minimal interface."
 license = "MIT"
+repository = "https://github.com/brie-r/eule"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
