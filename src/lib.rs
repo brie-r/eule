@@ -4,14 +4,6 @@ use directories::ProjectDirs;
 use anyhow::{Result, Context};
 use tokio::{fs, fs::OpenOptions, io::{self, AsyncReadExt, AsyncWriteExt}, sync::Mutex};
 use std::sync::Arc;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum SerdataError
-{
-	#[error("OpenOptions::open failed.")]
-	Open
-}
 
 pub struct Serder
 {
@@ -44,9 +36,27 @@ impl Serder
 
 		Ok(output)
 	}
+		pub async fn deserialize_or_value<T>(&self, filename: String, value: T) -> io::Result<T>
+	where
+		T: for<'de> Deserialize<'de>
+	{
+		let filepath = self.path.join(filename);
+		let mut file = OpenOptions::new().read(true).write(true).create(true).open(filepath).await?;
+
+		let mut buf = Vec::new();	
+		let size = file.read_to_end(&mut buf).await?;
+
+		let output: T = match size
+		{
+			0 => value,
+			1.. => serde_json::from_slice(&buf)?,
+		};
+
+		Ok(output)
+	}
 	pub async fn deserialize_or_err<T>(&self, filename: String) -> Result<T>
 	where
-		T: Default + for<'de> Deserialize<'de>
+		T: for<'de> Deserialize<'de>
 	{
 		let buf = self.read_file(filename).await?;
 	
@@ -103,26 +113,55 @@ impl Serder
 #[cfg(test)]
 mod tests
 {
+	use std::collections::HashMap;
 	use super::*;
-	#[derive(Clone, Serialize, Deserialize, Default)] 
-	pub struct T
+	#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)] 
+	pub struct T<A, B, C>
 	{
-		data: E,
+		data: E<A, B, C>,
 	}
-	#[derive(Clone, Serialize, Deserialize, Default)] 
-	pub enum E
+	#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)] 
+	pub enum E<A, B, C>
 	{
-		#[default]
-		A,
-		B,
-		C
+		A {v: Option<A>},
+		B {v: Option<B>},
+		C {v: Option<C>},
+	}
+	#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)] 
+	pub enum EA
+	{
+		AA, AB, AC
+	}
+	#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)] 
+	pub enum EB
+	{
+		BA, BB, BC
+	}
+	#[derive(Clone, Serialize, Deserialize, Eq, PartialEq, Hash)] 
+	pub enum EC
+	{
+		CA, CB, CC
 	}
 	#[tokio::test]
-	async fn no_err() -> Result<()>
+	async fn default_or_value() -> Result<()>
 	{
-		let se = Serder::new("serdata_test".to_string()).await?;
-		let data: E = se.deserialize_or_default("in.json".to_string()).await?;
-		se.serialize_and_save("out.json".to_string(), data).await?;
+		let se = Serder::new("eule_test".to_string()).await?;
+		let mut hm: HashMap<String, E<EA, EB, EC>> = HashMap::new();
+		hm.insert("B".to_string(), E::B{v: Some(EB::BC)});
+		let data: HashMap<String, E<EA, EB, EC>> = se.deserialize_or_value("in_no_err.json".to_string(), hm).await?;
+		se.serialize_and_save("out_no_err.json".to_string(), data).await?;
+
+		Ok(())
+	}
+	#[tokio::test]
+	async fn default_or_value_arc_mutex() -> Result<()>
+	{
+		let se = Serder::new("eule_test".to_string()).await?;
+		let mut hm: HashMap<String, E<EA, EB, EC>> = HashMap::new();
+		hm.insert("B".to_string(), E::B{v: Some(EB::BC)});
+		let data: HashMap<String, E<EA, EB, EC>> = se.deserialize_or_value("in_arc_mutex.json".to_string(), hm).await?;
+		let data_arc_mutex = Arc::new(Mutex::new(&data));
+		se.serialize_arc_mutex_and_save("out_arc_mutex.json".to_string(), Arc::clone(&data_arc_mutex)).await?;
 
 		Ok(())
 	}
