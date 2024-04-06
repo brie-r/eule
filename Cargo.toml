@@ -1,8 +1,8 @@
 [package]
 name = "serdata"
-version = "1.0.0"
+version = "0.5.0"
 edition = "2021"
-description = ""
+description = "Async generic serialization crate with a minimal interface."
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
