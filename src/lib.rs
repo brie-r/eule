@@ -61,6 +61,7 @@ impl Serder
 	{
 		let filepath = self.path.join(filename);
 		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
+		// TODO: save pretty
 		let serialized_data = ron::ser::to_string(&data)?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
