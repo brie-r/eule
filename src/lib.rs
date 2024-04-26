@@ -22,10 +22,20 @@ impl Serder
 		T: Default + for<'de> Deserialize<'de>
 	{
 		let buf = self.read_file(filename).await?;
+		println!("buf: {}", String::from_utf8(buf.clone())?);
 		let output = match buf.len()
 		{
-			0 => Default::default(),
-			1.. => ron::de::from_bytes(&buf).unwrap_or_default(),
+			0 =>
+			{
+				println!("0");
+				Default::default()
+			},
+			1.. =>
+			{
+				//let a: T = ron::de::from_bytes(&buf)?;
+				println!("1");
+				ron::de::from_bytes(&buf).unwrap_or_default()
+			},
 		};
 
 		Ok(output)
