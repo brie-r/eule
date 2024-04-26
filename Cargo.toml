@@ -1,6 +1,6 @@
 [package]
 name = "eule"
-version = "0.5.4"
+version = "0.5.5"
 edition = "2021"
 description = "Async generic serialization crate with a minimal interface."
 license = "MIT"

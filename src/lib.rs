@@ -1,9 +1,9 @@
+use std::{path::PathBuf, sync::Arc};
 use serde::{Serialize, Deserialize};
-use std::path::PathBuf;
 use directories::ProjectDirs;
 use anyhow::{Result, Context};
 use tokio::{fs, fs::OpenOptions, io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
-use std::sync::Arc;
+use ron::extensions::Extensions;
 pub struct Serder
 {
 	path: PathBuf,
@@ -61,12 +61,7 @@ impl Serder
 	{
 		let filepath = self.path.join(filename);
 		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
-		
-		let ext = ron::extensions::Extensions::default().union(ron::extensions::Extensions::IMPLICIT_SOME).union(ron::extensions::Extensions::UNWRAP_NEWTYPES).union(ron::extensions::Extensions::UNWRAP_VARIANT_NEWTYPES);
-
-		let config = ron::ser::PrettyConfig::default().indentor("\t".to_string()).struct_names(true).separate_tuple_members(true).extensions(ext);
-
-		let serialized_data = ron::ser::to_string_pretty(&data, ron::ser::PrettyConfig::default())?;
+		let serialized_data = pretty_ser(data)?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
 	}
@@ -76,7 +71,7 @@ impl Serder
 	{
 		let filepath = self.path.join(filename);
 		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
-		let serialized_data = ron::ser::to_string(data.as_ref())?;
+		let serialized_data = pretty_ser(data.as_ref())?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
 	}
@@ -87,7 +82,7 @@ impl Serder
 		let filepath = self.path.join(filename);
 		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
 		let locked_data = data.lock().await;
-		let serialized_data = ron::ser::to_string(&*locked_data)?;
+		let serialized_data = pretty_ser(&*locked_data)?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
 	}
@@ -102,6 +97,14 @@ impl Serder
 		Ok(buf)
 	}
 }
+fn pretty_ser<T>(data: T) -> anyhow::Result<String>
+	where
+		T: Serialize
+	{
+		let ext = Extensions::default().union(Extensions::IMPLICIT_SOME).union(Extensions::UNWRAP_NEWTYPES).union(Extensions::UNWRAP_VARIANT_NEWTYPES);
+		let config = ron::ser::PrettyConfig::default().indentor("\t".to_string()).struct_names(true).separate_tuple_members(true).extensions(ext);
+		Ok(ron::ser::to_string_pretty(&data, config)?)
+	}
 
 #[cfg(test)]
 mod tests
