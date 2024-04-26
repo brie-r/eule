@@ -64,7 +64,7 @@ impl Serder
 		
 		let ext = ron::extensions::Extensions::default().union(ron::extensions::Extensions::IMPLICIT_SOME).union(ron::extensions::Extensions::UNWRAP_NEWTYPES).union(ron::extensions::Extensions::UNWRAP_VARIANT_NEWTYPES);
 
-		let config = ron::ser::PrettyConfig::new().indentor("\t".to_string()).struct_names(true).separate_tuple_members(true).extensions(ext);
+		let config = ron::ser::PrettyConfig::default().indentor("\t".to_string()).struct_names(true).separate_tuple_members(true).extensions(ext);
 
 		let serialized_data = ron::ser::to_string_pretty(&data, config)?;
 		file.write_all(serialized_data.as_bytes()).await?;
