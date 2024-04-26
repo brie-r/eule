@@ -66,7 +66,7 @@ impl Serder
 
 		let config = ron::ser::PrettyConfig::default().indentor("\t".to_string()).struct_names(true).separate_tuple_members(true).extensions(ext);
 
-		let serialized_data = ron::ser::to_string_pretty(&data, config)?;
+		let serialized_data = ron::ser::to_string_pretty(&data, ron::ser::PrettyConfig::default())?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
 	}
