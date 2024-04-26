@@ -61,8 +61,12 @@ impl Serder
 	{
 		let filepath = self.path.join(filename);
 		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
-		// TODO: save pretty
-		let serialized_data = ron::ser::to_string(&data)?;
+		
+		let ext = ron::extensions::Extensions::default().union(ron::extensions::Extensions::IMPLICIT_SOME).union(ron::extensions::Extensions::UNWRAP_NEWTYPES).union(ron::extensions::Extensions::UNWRAP_VARIANT_NEWTYPES);
+
+		let config = ron::ser::PrettyConfig::new().indentor("\t".to_string()).struct_names(true).separate_tuple_members(true).extensions(ext);
+
+		let serialized_data = ron::ser::to_string_pretty(&data, config)?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
 	}
