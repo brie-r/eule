@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 use serde::{Serialize, Deserialize};
 use directories::ProjectDirs;
 use anyhow::{Result, Context};
-use tokio::{fs, fs::OpenOptions, io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
+use tokio::{fs, fs::OpenOptions, io::{AsyncReadExt, AsyncWriteExt}, sync::{Mutex, RwLock}};
 use ron::extensions::Extensions;
 pub struct Serder
 {
@@ -40,7 +40,6 @@ impl Serder
 			0 => value,
 			1.. => ron::de::from_bytes(&buf).unwrap_or(value),
 		};
-
 		Ok(output)
 	}
 	pub async fn deserialize_or_err<T>(&self, filename: String) -> Result<T>
@@ -83,6 +82,16 @@ impl Serder
 		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
 		let locked_data = data.lock().await;
 		let serialized_data = pretty_ser(&*locked_data)?;
+		file.write_all(serialized_data.as_bytes()).await?;
+		Ok(())
+	}
+	pub async fn serialize_arc_rwlock_and_save<T>(&self, filename: String, data: Arc<RwLock<T>>) -> anyhow::Result<()>
+	where
+		T: Serialize
+	{
+		let filepath = self.path.join(filename);
+		let mut file = OpenOptions::new().truncate(true).write(true).create(true).open(filepath).await?;
+		let serialized_data = pretty_ser(&*data.read().await)?;
 		file.write_all(serialized_data.as_bytes()).await?;
 		Ok(())
 	}
